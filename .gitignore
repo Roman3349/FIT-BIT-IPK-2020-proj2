@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+ipk-sniffer
+cmake-build-debug/
+
+# Archives
+xondra58.tar
+
+# CLion
+.idea/
