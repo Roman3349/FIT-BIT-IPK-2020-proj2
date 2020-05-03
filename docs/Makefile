@@ -14,19 +14,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-CFLAGS=-std=c++11 -g -Wall -Wextra -pedantic -lpcap
-OBJECTS=$(SOURCES:.c=.o)
-SOURCES=src/main.cpp
-TARGET=ipk-sniffer
+PROJECT=manual
+TEX=pdflatex
 
-.PHONY: manual pack
+.PHONY: all clean cleanall
 
-$(TARGET): $(OBJECTS)
-	$(CXX) -o $@ $^ $(CFLAGS)
+all:
+	$(TEX) $(PROJECT).tex
+	$(TEX) $(PROJECT).tex
+clean:
+	rm -f *.toc *.aux *.log *.dvi *.ps *.lot *.out *.znd *.zdx
 
-manual:
-	$(MAKE) -C docs/ all
-	mv docs/manual.pdf .
-
-pack: manual
-	tar -cvf xondra58.tar README.md LICENSE Makefile src/ manual.pdf
+cleanall:
+	rm -f *.toc *.aux *.log *.dvi *.ps *.lot *.out *.znd *.zdx *.pdf

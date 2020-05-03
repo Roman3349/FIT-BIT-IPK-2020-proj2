@@ -1,0 +1,155 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,top=3cm,left=2cm,right=2cm,bottom=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+\usepackage[unicode]{hyperref}
+\usepackage{graphicx}
+\begin{document}
+
+    \begin{titlepage}
+        \begin{center}
+            \includegraphics[height = 96pt]{img/FIT_barevne_CMYK_CZ.pdf} \\
+
+            \begin{LARGE}
+                \textbf{Vysoké učení technické v~Brně} \\
+            \end{LARGE}
+
+            \begin{Large}
+                \textbf{Fakulta informačních technologií} \\
+            \end{Large}
+
+            \begin{large}
+                Počítačové komunikace a sítě \\
+                2019~/~2020
+            \end{large}
+
+            \vspace{\stretch{0.382}}
+
+            \begin{huge}
+                \textbf{Varianta ZETA: Sniffer paketů} \\
+            \end{huge}
+
+            \vspace{\stretch{0.618}}
+
+            \begin{large}
+                Roman Ondráček (\href{mailto:xondra58@stud.fit.vutbr.cz}{xondra58@stud.fit.vutbr.cz}) \\
+                \today
+            \end{large}
+        \end{center}
+    \end{titlepage}
+
+
+    \tableofcontents
+    \newpage
+
+    \section*{Úvod}
+
+    Tento dokument byl vytvořen jako dokumentace druhého projektu do předmětu Počítačové komunikace a sítě a popisuje daný projekt, implementační detaily, testování a zdroje informací.
+    Cílem projektu je síťový analyzátor napsaný v jazyce C++11, který je chopný na určitém síťovém rozhraní zachytávat a filtrovat pakety.
+    Pro zachycení a filtrování paketů je použita knihovna \texttt{libpcap}\cite{libpcap}.
+    Při implementaci byly hojně používány manuálnové stránky.
+
+    \section{Implementace}\label{sec:implementace}
+
+    Tato část popisuje samotný způsob implementace programu v jazyce C++11.
+
+    \subsection{Práce s parametry}
+
+    Vzhledem k tomu, že zadání požadovalo načítání krátkých i dlouhých parametrů, byla použita knihovna \texttt{getopt}\cite{man-getopt}.
+    Která ve standardní POSIXové implementaci sice umí pouze krátké parametry, ale na většině systémů je nainstalována GNU implementace.
+
+    \subsection{Získání dostupných síťových rozhraní}
+
+    Pro získání všech dostupných síťových rozhraní je použita funkce \texttt{pcap\_findalldevs}\cite{man-pcap-findalldevs} z knihovny \texttt{libpcap}.
+    Poté ve smyčce se vypisují rozhraní, na kterých lze spustit zachytávání a filtrování paketů.
+
+    \subsection{Zachytávání a filtrování paketů}
+
+    Pro otevření síťového rozgraní pro zachytávání paketů je použita funkce \texttt{pcap\_open\_live}\cite{man-pcap-open-live}.
+    Podle použitých argumentů se v funkci \texttt{composePcapFilter} sestaví filtrovací výraz, který se poté sestaví pomocí funkce \texttt{pcap\_compile}\cite{man-pcap-compile}.
+    Sestavený filter se poté nastaví pomocí funkce \texttt{pcap\_setfilter}\cite{man-pcap-setfilter}.
+    Samotné zachytávání paketů se spustí pomocí funkce \texttt{pcap\_loop}\cite{man-pcap-loop} a při každém zachycením se spustí funkce \texttt{processPacket}, která se stará o parsování jednotlivých protokolů na různých síťových vrstvách.
+
+    \newpage
+
+    \section{Testování}\label{sec:testování}
+
+    Moje implementace byla testována na Debianu testing a její výstupy byly porovnány s výstupy open-source síťového analyzátoru WireShark\cite{wireshark}.
+
+    \subsection{Ukázkový výstup}
+
+    \begin{verbatim}
+sudo ./ipk-sniffer -i eno1 -p 80 -t -n 4
+22:46:57.609842 ASUS-B85-PRO-GAMER:35012 > www.fit.vutbr.cz:80
+
+0x0000  d8 58 d7 00 1d c1 08 62  66 4c 53 fd 86 dd 60 08        .X.....bfLS...`.
+0x0010  2f fc 00 28 06 40 20 01  04 70 5b b2 00 00 00 00        /..(.@ ..p[.....
+0x0020  00 00 00 00 06 71 20 01  06 7c 12 20 08 09 00 00        .....q ..|. ....
+0x0030  00 00 93 e5 09 17 88 c4  00 50 da ea ba 55 00 00        .........P...U..
+0x0040  00 00 a0 02 fd 20 64 65  00 00 02 04 05 a0 04 02        ..... de........
+0x0050  08 0a 2b 71 9d 7c 00 00  00 00 01 03 03 07              ..+q.|........
+
+22:46:57.619431 www.fit.vutbr.cz:80 > ASUS-B85-PRO-GAMER:35012
+
+0x0000  08 62 66 4c 53 fd d8 58  d7 00 1d c1 86 dd 60 02        .bfLS..X......`.
+0x0010  8c 56 00 28 06 38 20 01  06 7c 12 20 08 09 00 00        .V.(.8 ..|. ....
+0x0020  00 00 93 e5 09 17 20 01  04 70 5b b2 00 00 00 00        ...... ..p[.....
+0x0030  00 00 00 00 06 71 00 50  88 c4 0c d2 8c 56 da ea        .....q.P.....V..
+0x0040  ba 56 a0 12 ff ff 8d 49  00 00 02 04 05 a0 01 03        .V.....I........
+0x0050  03 04 04 02 08 0a e4 11  f2 08 2b 71 9d 7c              ..........+q.|
+
+22:46:57.619464 ASUS-B85-PRO-GAMER:35012 > www.fit.vutbr.cz:80
+
+0x0000  d8 58 d7 00 1d c1 08 62  66 4c 53 fd 86 dd 60 08        .X.....bfLS...`.
+0x0010  2f fc 00 20 06 40 20 01  04 70 5b b2 00 00 00 00        /.. .@ ..p[.....
+0x0020  00 00 00 00 06 71 20 01  06 7c 12 20 08 09 00 00        .....q ..|. ....
+0x0030  00 00 93 e5 09 17 88 c4  00 50 da ea ba 56 0c d2        .........P...V..
+0x0040  8c 57 80 10 01 fb 64 5d  00 00 01 01 08 0a 2b 71        .W....d]......+q
+0x0050  9d 85 e4 11 f2 08                                       ......
+
+22:46:57.619557 ASUS-B85-PRO-GAMER:35012 > www.fit.vutbr.cz:80
+
+0x0000  d8 58 d7 00 1d c1 08 62  66 4c 53 fd 86 dd 60 08        .X.....bfLS...`.
+0x0010  2f fc 00 70 06 40 20 01  04 70 5b b2 00 00 00 00        /..p.@ ..p[.....
+0x0020  00 00 00 00 06 71 20 01  06 7c 12 20 08 09 00 00        .....q ..|. ....
+0x0030  00 00 93 e5 09 17 88 c4  00 50 da ea ba 56 0c d2        .........P...V..
+0x0040  8c 57 80 18 01 fb 64 ad  00 00 01 01 08 0a 2b 71        .W....d.......+q
+0x0050  9d 85 e4 11 f2 08 47 45  54 20 2f 20 48 54 54 50        ......GET / HTTP
+0x0060  2f 31 2e 31 0d 0a 48 6f  73 74 3a 20 77 77 77 2e        /1.1..Host: www.
+0x0070  66 69 74 2e 76 75 74 62  72 2e 63 7a 0d 0a 55 73        fit.vutbr.cz..Us
+0x0080  65 72 2d 41 67 65 6e 74  3a 20 63 75 72 6c 2f 37        er-Agent: curl/7
+0x0090  2e 36 38 2e 30 0d 0a 41  63 63 65 70 74 3a 20 2a        .68.0..Accept: *
+0x00a0  2f 2a 0d 0a 0d 0a                                       /*....
+    \end{verbatim}
+
+
+    \begin{thebibliography}{99}
+
+        \addcontentsline{toc}{section}{Seznam použité literatury}
+
+        \bibitem{libpcap}
+        TCPDUMP/LIBPCAP public repository [online]. The Tcpdump Group, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.tcpdump.org/}
+
+        \bibitem{man-getopt}
+        Getopt(3) - Linux manual page [online]. Linux Programmer's Manual, 2020 [cit. 2020-05-03]. Dostupné z: \url{http://man7.org/linux/man-pages/man3/getopt.3.html}
+
+        \bibitem{man-pcap-findalldevs}
+        Manpage of PCAP\_FINDALLDEVS [online]. The Tcpdump Group, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.tcpdump.org/manpages/pcap\_findalldevs.3pcap.html}
+
+        \bibitem{man-pcap-open-live}
+        Manpage of PCAP\_FINDALLDEVS [online]. The Tcpdump Group, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.tcpdump.org/manpages/pcap\_open\_live.3pcap.html}
+
+        \bibitem{man-pcap-compile}
+        Manpage of PCAP\_COMPILE [online]. The Tcpdump Group, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.tcpdump.org/manpages/pcap\_compile.3pcap.html}
+
+        \bibitem{man-pcap-setfilter}
+        Manpage of PCAP\_SETFILTER [online]. The Tcpdump Group, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.tcpdump.org/manpages/pcap\_compile.3pcap.html}
+
+        \bibitem{man-pcap-loop}
+        Manpage of PCAP\_LOOP [online]. The Tcpdump Group, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.tcpdump.org/manpages/pcap\_loop.3pcap.html}
+
+        \bibitem{wireshark}
+        Wireshark · Go Deep. [online]. The Wireshark Foundation, 2020 [cit. 2020-05-03]. Dostupné z: \url{https://www.wireshark.org/}
+
+    \end{thebibliography}
+\end{document}
